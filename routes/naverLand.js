@@ -6,11 +6,83 @@ const jwt = require('jsonwebtoken');
 const moment = require('moment');
 const fs = require('fs')
 const path = require('path')
-const fileUtils = require('../utils/fileUtils')
+const database = require('../lib/firebase');
 const router = express.Router();
+
+
+const { initializeApp } = require('firebase/app');
+const { getFirestore, collection, doc, setDoc, getDoc } = require('firebase/firestore');
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAkYAxaSTB8GtGATxJnanCj30l7go71bGc",
+  authDomain: "for84m2.firebaseapp.com",
+  databaseURL: "https://for84m2-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "for84m2",
+  storageBucket: "for84m2.appspot.com",
+  messagingSenderId: "579314809284",
+  appId: "1:579314809284:web:1dc4d16ec1d725a10d0c91",
+  measurementId: "G-NYWQ4DRWGZ"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+router.get(['/test'], async function(req, res, next) {
+
+
+  const citiesRef = collection(db, "cities");
+
+  await setDoc(doc(citiesRef, "SF"), {
+      name: "San Francisco", state: "CA", country: "USA",
+      capital: false, population: 860000,
+      regions: ["west_coast", "norcal"] });
+  await setDoc(doc(citiesRef, "LA"), {
+      name: "Los Angeles", state: "CA", country: "USA",
+      capital: false, population: 3900000,
+      regions: ["west_coast", "socal"] });
+  await setDoc(doc(citiesRef, "DC"), {
+      name: "Washington, D.C.", state: null, country: "USA",
+      capital: true, population: 680000,
+      regions: ["east_coast"] });
+  await setDoc(doc(citiesRef, "TOK"), {
+      name: "Tokyo", state: null, country: "Japan",
+      capital: true, population: 9000000,
+      regions: ["kanto", "honshu"] });
+  await setDoc(doc(citiesRef, "BJ"), {
+      name: "Beijing", state: null, country: "China",
+      capital: true, population: 21500000,
+      regions: ["jingjinji", "hebei"] });
+
+  res.status(200).json({'result': 'success'});
+});
+
+
+router.get(['/test22'], function(req, res, next) {
+
+  getDoc(doc(db, 'users', 'user1'))
+  .then((docSnapshot) => {
+    if (docSnapshot.exists()) {
+      const data = docSnapshot.data();
+      console.log('JSON data retrieved from Firestore: ', data);
+    } else {
+      console.log('No such document!');
+    }
+  })
+  .catch((error) => {
+    console.error('Error getting JSON data: ', error);
+  });
+
+  res.status(200).json({'result': 'success'});
+});
+
+
+
+
 
 let _token = "";
 let _articleList = [];
+// {"3079": {"12345678": { ... } } }
 
 
 // {
@@ -18,17 +90,40 @@ let _articleList = [];
 
 // }
 
+router.get(['/flush'], async function(req, res, next) {
 
-router.get(['', '/token'], async function(req, res, next) {
+  database.write(`article/3079`, {
+    result: _articleList
+  });
+  
+
+
+  res.status(200).json({'result': 'success'});
+});
+
+
+
+router.get(['/test2'], async function(req, res, next) {
+
+  database.doc1();
+  const result = await database.getDocs1();
+console.log(result);
+  res.status(200).json({'result': result});
+});
+
+
+
+
+router.get(['/token'], async function(req, res, next) {
   res.status(200).json({'token': _token});
 });
 
-router.get(['', '/list'], async function(req, res, next) {
+router.get(['/list'], async function(req, res, next) {
   res.status(200).json({'list': _articleList});
 });
 
 
-router.get(['', '/get/:id'], async function(req, res, next) {
+router.get(['/get/:id'], async function(req, res, next) {
 
   // jwt token 새로 발급(만료시 갱신)
   await issueToken();
@@ -62,12 +157,10 @@ router.get(['', '/get/:id'], async function(req, res, next) {
     }, 1000);
 
   }
-  
+
 
   res.status(200).json(_articleList);
-
-
-    
+   
 });
 
 async function issueToken() {
